@@ -124,12 +124,11 @@
            <div class="input-field col s12 m6"><input type="text" name="Mother's Contact No." class="phone-check"><label>Mother's Phone</label></div>
         </div>
         <div class="row">
-           <div class="input-field col s12 m4"><input type="text" name="Name of Spouse" class="u-case"><label>Spouse Name</label></div>
-           <div class="input-field col s12 m4"><input type="text" name="Contact No. of Spouse" class="phone-check"><label>Spouse Phone</label></div>
-           <div class="input-field col s12 m4"><input type="text" name="Email ID"><label>Email ID</label></div>
+           <div class="input-field col s12 m6"><input type="text" name="Name of Spouse" class="u-case"><label>Spouse Name</label></div>
+           <div class="input-field col s12 m6"><input type="text" name="Contact No. of Spouse" class="phone-check"><label>Spouse Phone</label></div>
         </div>
 
-        <div class="row valign-wrapper" style="flex-wrap: wrap; background: #fafafa; border-radius: 8px; padding: 10px;">
+        <div class="row valign-wrapper" style="flex-wrap: wrap; background: #fafafa; border-radius: 8px; padding: 10px; margin-bottom: 15px;">
            <div class="input-field col s12 m5"><input type="text" id="p_cell" name="Personal Contact No." class="phone-check"><label>Personal Phone</label></div>
            <div class="col s12 m2 middle-col">
              <i class="material-icons copy-icon-btn" onclick="copyField('p_cell', 'w_cell')" title="Copy to WhatsApp">arrow_forward</i>
@@ -137,15 +136,19 @@
            <div class="input-field col s12 m5"><input type="text" id="w_cell" name="WhatsApp No." class="phone-check"><label>WhatsApp No.</label></div>
         </div>
 
-        <div class="row valign-wrapper" style="flex-wrap: wrap; background: #fafafa; border-radius: 8px; padding: 10px; margin-top: 15px;">
+        <div class="row valign-wrapper" style="flex-wrap: wrap; background: #fafafa; border-radius: 8px; padding: 10px; margin-bottom: 15px;">
            <div class="input-field col s12 m5"><textarea id="perm_addr" name="Permanent Address" class="materialize-textarea u-case"></textarea><label>Permanent Address</label></div>
            <div class="col s12 m2 middle-col">
              <i class="material-icons copy-icon-btn" onclick="copyField('perm_addr', 'pres_addr')" title="Copy to Present">arrow_forward</i>
            </div>
            <div class="input-field col s12 m5"><textarea id="pres_addr" name="Present Address" class="materialize-textarea u-case"></textarea><label>Present Address</label></div>
         </div>
-        <div class="input-field col s12 m4"><input type="text" name="Alternate Contact No." class="phone-check"><label>Alternate Contact No.</label></div>
-        <div class="input-field col s12 m4"><input type="text" name="Emergency Contact No." class="phone-check"><label>Emergency Contact No.</label></div>
+
+        <div class="row">
+           <div class="input-field col s12 m4"><input type="text" name="Email ID"><label>Email ID</label></div>
+           <div class="input-field col s12 m4"><input type="text" name="Alternate Contact No." class="phone-check"><label>Alternate Contact No.</label></div>
+           <div class="input-field col s12 m4"><input type="text" name="Emergency Contact No." class="phone-check"><label>Emergency Contact No.</label></div>
+        </div>
 
         <div class="save-btn-container">
           <button type="button" class="btn green darken-1 save-btn waves-effect" onclick="saveData('sec2')">SAVE SECTION 2</button>
