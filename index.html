@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title id="pageTitle">SaaS PMIS Portal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  
+  <style>
+    body { background-color: #f0f4f8; font-family: 'Segoe UI', sans-serif; }
+    .container { width: 95%; max-width: 1200px; margin-top: 20px; }
+    .section-box { background: white; padding: 25px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+    
+    /* Branding Header */
+    .brand-header { background: #1565c0; color: white; padding: 25px; border-radius: 12px; margin-bottom: 20px; display: none; }
+    
+    /* Loader */
+    #loader { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.95); z-index:9999; display:flex; flex-direction:column; justify-content:center; align-items:center; }
+    .spinner { border: 5px solid #f3f3f3; border-top: 5px solid #1565c0; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    /* UI Nuances */
+    .u-case { text-transform: uppercase; }
+    .percent-badge { background: #2e7d32; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.8rem; display: none; font-weight: bold; }
+    .warning-msg { color: #ff9800; font-size: 0.8rem; display: none; font-weight: bold; }
+    .input-warning { border-bottom: 2px solid #ff9800 !important; }
+    .save-btn { width: 100%; max-width: 250px; border-radius: 25px; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <div id="loader"><div class="spinner"></div><p id="loaderText" style="margin-top:15px; font-weight:bold; color:#1565c0;">Connecting to Mother Ship...</p></div>
+
+  <div id="setupModal" class="modal">
+    <div class="modal-content">
+      <h4 id="setupTitle">Connect Your Sheet</h4>
+      <div id="idStep">
+        <p>Enter the Google Sheet ID of your blank sheet. (Ensure you have shared it with the Mother Ship email).</p>
+        <div class="input-field"><input type="text" id="input_sheet_id"><label>Google Sheet ID</label></div>
+        <button class="btn blue" onclick="saveSheetId()">Connect</button>
+      </div>
+      <div id="provisionStep" style="display:none;">
+        <p>Sheet detected! Now, let's initialize your organization.</p>
+        <div class="input-field"><input type="text" id="new_org_name"><label>Organization Name</label></div>
+        <div class="input-field"><input type="password" id="new_admin_pass"><label>Set Admin Password</label></div>
+        <button class="btn green" onclick="runProvisioning()">Build System Now</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="brand-header" id="brandHeader">
+      <h4 id="orgDisplay" style="margin:0; font-weight:bold;">Organization Name</h4>
+      <p id="subTitle" style="margin:0; opacity:0.8;">Employee Management Portal</p>
+    </div>
+
+    <div id="authZone" class="section-box" style="display:none; border-top: 5px solid #1565c0;">
+      <div class="row" style="margin-bottom:0">
+        <div class="input-field col s12 m4"><input type="text" id="auth_pmis"><label>PMIS CODE</label></div>
+        <div class="input-field col s12 m4"><input type="text" id="auth_dob" placeholder="DD-MM-YYYY"><label>DATE OF BIRTH</label></div>
+        <div class="col s12 m4"><button class="btn-large blue darken-4" style="width:100%; margin-top:10px;" onclick="handleLogin()">LOAD RECORD</button></div>
+      </div>
+      <div style="text-align: right; margin-top: 10px;">
+        <a href="#" onclick="clearSession()" style="font-size: 0.8rem; color: #999;">Disconnect Sheet</a>
+      </div>
+    </div>
+
+    <form id="dynamicForm"></form>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <script>
+    const MOTHER_SHIP = 'https://script.google.com/macros/s/AKfycbxk570Yj2DRGZcEWBB2E8BwHZOxDfO6i5TSF_NKyjso65ct2j0pbNiE5edQ-_aAyHi0sQ/exec';
+    let TARGET_SHEET_ID = localStorage.getItem('pmis_sheet_id');
+
+    document.addEventListener('DOMContentLoaded', () => {
+      M.Modal.init(document.querySelectorAll('.modal'), {dismissible: false});
+      if (!TARGET_SHEET_ID) {
+        openSetup();
+      } else {
+        initApp();
+      }
+    });
+
+    function openSetup() {
+      document.getElementById('loader').style.display = 'none';
+      M.Modal.getInstance(document.getElementById('setupModal')).open();
+    }
+
+    function saveSheetId() {
+      const id = document.getElementById('input_sheet_id').value.trim();
+      if(!id) return M.toast({html: 'Enter ID'});
+      TARGET_SHEET_ID = id;
+      localStorage.setItem('pmis_sheet_id', id);
+      initApp();
+    }
+
+    function initApp() {
+      toggleLoader(true, "Authenticating with Sheet...");
+      callMotherShip({action: 'init', sheetId: TARGET_SHEET_ID}, (res) => {
+        if(res.needsProvisioning) {
+          document.getElementById('idStep').style.display = 'none';
+          document.getElementById('provisionStep').style.display = 'block';
+          document.getElementById('setupTitle').innerText = "System Initialization";
+          openSetup();
+        } else {
+          M.Modal.getInstance(document.getElementById('setupModal')).close();
+          document.getElementById('orgDisplay').innerText = res.settings.ORG_NAME;
+          document.getElementById('brandHeader').style.display = 'block';
+          document.getElementById('authZone').style.display = 'block';
+          renderForm(res.schema);
+        }
+        toggleLoader(false);
+      });
+    }
+
+    function runProvisioning() {
+      const org = document.getElementById('new_org_name').value;
+      const pass = document.getElementById('new_admin_pass').value;
+      if(!org || !pass) return M.toast({html: 'Fill details'});
+      
+      toggleLoader(true, "Building 72-Column Engine...");
+      callMotherShip({action: 'provision', sheetId: TARGET_SHEET_ID, orgName: org, password: pass}, (res) => {
+        if(res.success) location.reload();
+        else alert(res.error);
+      });
+    }
+
+    function renderForm(schema) {
+      const form = document.getElementById('dynamicForm');
+      const sections = [...new Set(schema.map(f => f.Section))];
+      
+      sections.forEach((sec, idx) => {
+        const box = document.createElement('div');
+        box.className = 'section-box';
+        let html = `<h5>${sec}</h5><div class="row" id="row_${idx}">`;
+        
+        schema.filter(f => f.Section === sec).forEach(f => {
+          html += `<div class="input-field col s12 m4">
+                    <input type="text" name="${f.Label}" class="${f.Data_Type === 'MARKS' ? 'marks-mask' : ''} u-case">
+                    <label>${f.Label}</label>
+                    ${f.Data_Type === 'MARKS' ? '<span class="percent-badge"></span><span class="warning-msg">⚠️ Format: Obt/Total</span>' : ''}
+                   </div>`;
+        });
+        
+        html += `</div><div style="text-align:right;"><button type="button" class="btn green save-btn" onclick="saveData('row_${idx}')">Save ${sec}</button></div>`;
+        box.innerHTML = html;
+        form.appendChild(box);
+      });
+      M.updateTextFields();
+      attachListeners();
+    }
+
+    function handleLogin() {
+      const pmis = document.getElementById('auth_pmis').value;
+      const dob = document.getElementById('auth_dob').value;
+      toggleLoader(true, "Fetching Record...");
+      callMotherShip({action: 'search', sheetId: TARGET_SHEET_ID, pmis: pmis, dob: dob}, (data) => {
+        toggleLoader(false);
+        if(data.error) return alert(data.error);
+        if(data.notFound) return M.toast({html: 'No record found'});
+        
+        Object.keys(data).forEach(key => {
+          const el = document.getElementsByName(key)[0];
+          if(el) { el.value = data[key]; el.dispatchEvent(new Event('input')); }
+        });
+        M.updateTextFields();
+      });
+    }
+
+    function saveData(rowId) {
+      const pmis = document.getElementById('auth_pmis').value;
+      if(!pmis) return alert("Identify record first");
+      const payload = {};
+      document.getElementById(rowId).querySelectorAll('input').forEach(i => payload[i.name] = i.value);
+      
+      toggleLoader(true, "Syncing Data...");
+      callMotherShip({action: 'save', sheetId: TARGET_SHEET_ID, pmis: pmis, payload: payload}, (res) => {
+        toggleLoader(false);
+        M.toast({html: res.message});
+      });
+    }
+
+    // --- UTILS ---
+    function callMotherShip(data, callback) {
+      fetch(MOTHER_SHIP, { method: 'POST', body: JSON.stringify(data) })
+        .then(res => res.json())
+        .then(res => callback(res))
+        .catch(err => { toggleLoader(false); alert("Connection Lost: " + err); });
+    }
+
+    function toggleLoader(show, text) {
+      document.getElementById('loader').style.display = show ? 'flex' : 'none';
+      if(text) document.getElementById('loaderText').innerText = text;
+    }
+
+    function clearSession() {
+      localStorage.removeItem('pmis_sheet_id');
+      location.reload();
+    }
+
+    function attachListeners() {
+      document.querySelectorAll('.u-case').forEach(el => el.addEventListener('input', e => e.target.value = e.target.value.toUpperCase()));
+      document.querySelectorAll('.marks-mask').forEach(el => {
+        el.addEventListener('input', e => {
+          const val = e.target.value;
+          const badge = e.target.parentNode.querySelector('.percent-badge');
+          const warn = e.target.parentNode.querySelector('.warning-msg');
+          if(val && !val.includes('/')) { e.target.classList.add('input-warning'); warn.style.display='block'; badge.style.display='none'; }
+          else {
+            e.target.classList.remove('input-warning'); warn.style.display='none';
+            const p = val.split('/');
+            if(p.length === 2 && p[1]>0) { badge.innerText = ((p[0]/p[1])*100).toFixed(2)+'%'; badge.style.display='inline-block'; }
+          }
+        });
+      });
+    }
+  </script>
+</body>
+</html>
