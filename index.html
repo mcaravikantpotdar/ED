@@ -1,1 +1,207 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    :root {
+      --primary: #1a73e8;
+      --success: #34a853;
+      --error: #ea4335;
+      --bg: #f8f9fa;
+      --text: #3c4043;
+    }
 
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0; padding: 0; background: var(--bg); color: var(--text);
+    }
+
+    /* --- STICKY HEADER --- */
+    .header {
+      position: sticky; top: 0; z-index: 1000;
+      background: white; border-bottom: 1px solid #dadce0;
+      padding: 10px 20px; display: flex; justify-content: space-between; align-items: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .btn-global-save {
+      background: var(--primary); color: white; border: none;
+      padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold;
+    }
+
+    /* --- NAVIGATION --- */
+    .nav-bar {
+      position: sticky; top: 60px; z-index: 999;
+      background: #fff; border-bottom: 1px solid #ddd;
+      overflow-x: auto; white-space: nowrap; display: flex;
+    }
+
+    .nav-item {
+      padding: 15px 20px; text-decoration: none; color: #5f6368; font-weight: 500;
+    }
+
+    .nav-item:hover { color: var(--primary); }
+
+    /* --- FORM LAYOUT --- */
+    .container { max-width: 1000px; margin: 20px auto; padding: 0 15px; }
+
+    section { 
+      background: white; border-radius: 8px; padding: 25px; 
+      margin-bottom: 30px; border: 1px solid #dadce0;
+    }
+
+    h2 { margin-top: 0; color: var(--primary); border-bottom: 2px solid #eee; padding-bottom: 10px; }
+
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+    .field-group { position: relative; display: flex; flex-direction: column; }
+
+    label { font-size: 0.85rem; font-weight: bold; margin-bottom: 5px; color: #555; }
+
+    input, select, textarea {
+      padding: 10px; border: 1px solid #dadce0; border-radius: 4px;
+      font-size: 1rem; width: 100%; box-sizing: border-box; text-transform: uppercase;
+    }
+
+    textarea { height: 80px; resize: vertical; }
+
+    /* --- ATOMIC ICONS --- */
+    .status-icon {
+      position: absolute; right: -25px; top: 32px;
+      cursor: pointer; font-size: 1.2rem; display: none;
+    }
+
+    .status-icon.floppy { display: block; color: var(--primary); }
+    .status-icon.tick { display: block; color: var(--success); cursor: default; }
+
+    /* --- MOBILE RESPONSIVE --- */
+    @media (max-width: 768px) {
+      .grid { grid-template-columns: 1fr; }
+      .container { margin-top: 10px; }
+      .status-icon { right: 10px; top: 10px; background: white; border-radius: 50%; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div><strong>PMIS:</strong> <span id="displayPmis">123456</span></div>
+  <button class="btn-global-save" onclick="saveAll()">SAVE / UPDATE ALL</button>
+</div>
+
+<div class="nav-bar">
+  <a href="#sec1" class="nav-item">Profile</a>
+  <a href="#sec2" class="nav-item">Identity/Contact</a>
+  <a href="#sec3" class="nav-item">Family</a>
+  <a href="#sec4" class="nav-item">Finance</a>
+  <a href="#sec5" class="nav-item">Academic</a>
+  <a href="#sec6" class="nav-item">Service</a>
+</div>
+
+<div class="container">
+
+  <section id="sec1">
+    <h2>I. Basic Profile</h2>
+    <div class="grid">
+      <div class="field-group">
+        <label>Full Name</label>
+        <input type="text" id="FullName" oninput="markDirty(this)" placeholder="Name as per service records">
+        <span class="status-icon" onclick="saveAtomic(this)"></span>
+      </div>
+      <div class="field-group">
+        <label>Gender</label>
+        <select id="Gender" onchange="markDirty(this)">
+          <option value="">SELECT</option>
+          <option value="MALE">MALE</option>
+          <option value="FEMALE">FEMALE</option>
+          <option value="OTHER">OTHER</option>
+        </select>
+        <span class="status-icon" onclick="saveAtomic(this)"></span>
+      </div>
+      <div class="field-group">
+        <label>PMIS Code (Read-Only)</label>
+        <input type="text" id="PMISCode" value="123456" readonly style="background:#eee">
+      </div>
+      <div class="field-group">
+        <label>D.O.B. (DD-MM-YYYY)</label>
+        <input type="text" id="DOB" oninput="applyDateMask(this); markDirty(this)" placeholder="00-00-0000">
+        <span class="status-icon" onclick="saveAtomic(this)"></span>
+      </div>
+    </div>
+  </section>
+
+  <section id="sec2">
+    <h2>II. Identity & Contact</h2>
+    <div class="grid">
+      <div class="field-group">
+        <label>Aadhaar Number</label>
+        <input type="text" id="Aadhaar" oninput="applyAadhaarMask(this); markDirty(this)" placeholder="0000 0000 0000">
+        <span class="status-icon" onclick="saveAtomic(this)"></span>
+      </div>
+      <div class="field-group">
+        <label>PAN Number</label>
+        <input type="text" id="PAN" oninput="markDirty(this)" placeholder="AAAAA0000A">
+        <span class="status-icon" onclick="saveAtomic(this)"></span>
+      </div>
+    </div>
+  </section>
+
+  </div>
+
+<script>
+  /**
+   * UI LOGIC
+   */
+
+  // 1. Mark field as "Dirty" (Changed)
+  function markDirty(el) {
+    const icon = el.parentElement.querySelector('.status-icon');
+    if (!el.readOnly) {
+      icon.innerHTML = '💾';
+      icon.className = 'status-icon floppy';
+    }
+  }
+
+  // 2. Atomic Save (Single Field)
+  function saveAtomic(iconEl) {
+    if (!iconEl.classList.contains('floppy')) return;
+
+    const input = iconEl.parentElement.querySelector('input, select, textarea');
+    const pmis = document.getElementById('PMISCode').value;
+    const fieldName = input.id;
+    const value = input.value;
+
+    iconEl.innerHTML = '⏳'; // Loading
+
+    google.script.run
+      .withSuccessHandler(() => {
+        iconEl.innerHTML = '✅';
+        iconEl.className = 'status-icon tick';
+      })
+      .atomicUpdate(pmis, fieldName, value);
+  }
+
+  // 3. Global Save (All Dirty Fields)
+  function saveAll() {
+    const dirtyIcons = document.querySelectorAll('.status-icon.floppy');
+    dirtyIcons.forEach(icon => saveAtomic(icon));
+  }
+
+  // 4. Masks
+  function applyDateMask(el) {
+    let v = el.value.replace(/\D/g, '').slice(0, 8);
+    if (v.length >= 2) v = v.slice(0, 2) + '-' + v.slice(2);
+    if (v.length >= 5) v = v.slice(0, 5) + '-' + v.slice(5);
+    el.value = v;
+  }
+
+  function applyAadhaarMask(el) {
+    let v = el.value.replace(/\D/g, '').slice(0, 12);
+    let matches = v.match(/\d{4}/g);
+    if (matches) v = matches.join(' ') + (v.length % 4 !== 0 ? ' ' + v.slice(matches.join('').length) : '');
+    el.value = v;
+  }
+</script>
+
+</body>
+</html>
