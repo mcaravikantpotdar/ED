@@ -40,9 +40,11 @@
         .btn-blue { background: var(--primary); color: white; }
         .btn-blue:hover { background: var(--primary-hover); }
         .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--primary); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: var(--error); color: white; }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        /* --- DASHBOARD NAVIGATION --- */
+        /* --- NAVIGATION --- */
         nav { 
             position: sticky; top: 75px; z-index: 999; background: var(--surface);
             display: flex; overflow-x: auto; border-bottom: 1px solid var(--border);
@@ -55,11 +57,15 @@
         }
         .nav-item.active { color: var(--primary); border-bottom-color: var(--primary); }
 
-        /* --- MAIN CONTENT --- */
+        /* --- CONTAINERS --- */
         .container { max-width: 1100px; margin: 20px auto; padding: 0 15px 100px; }
+        #adminView { display: none; }
+
+        /* --- CARDS --- */
         .card { background: var(--surface); border-radius: 8px; border: 1px solid var(--border); padding: 24px; margin-bottom: 30px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
         .card h2 { margin: 0 0 20px 0; color: var(--primary); font-size: 18px; border-bottom: 1px solid #f1f3f4; padding-bottom: 12px; }
 
+        /* --- EMPLOYEE PORTAL GRID --- */
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px 40px; }
         .field { display: flex; flex-direction: column; gap: 8px; position: relative; }
         .field label { font-size: 12px; font-weight: 600; color: var(--text-light); }
@@ -82,6 +88,13 @@
 
         .pct-badge { background: #e8f0fe; color: var(--primary); padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-left: 8px; }
         .sync-badge { min-width: 24px; font-size: 16px; display: flex; align-items: center; justify-content: center; }
+
+        /* --- ADMIN DASHBOARD TABLE --- */
+        .admin-table-wrap { overflow-x: auto; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; min-width: 900px; }
+        th { background: #f8f9fa; text-align: left; padding: 12px; font-size: 12px; color: var(--text-light); border-bottom: 2px solid var(--border); }
+        td { padding: 8px; border-bottom: 1px solid var(--border); }
+        .admin-input { padding: 8px; font-size: 13px; border: 1px solid var(--border); border-radius: 4px; text-transform: none; }
 
         /* --- MODALS --- */
         .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 2000; padding: 20px; }
@@ -109,26 +122,79 @@
 
 <header>
     <div class="auth-controls">
-        <div class="input-group">
+        <div class="input-group" id="pmis-box">
             <label>PMIS CODE</label>
             <input type="text" id="auth_pmis" class="std-input" maxlength="5" placeholder="5 Digits" oninput="this.value=this.value.replace(/\D/g,'')">
         </div>
-        <div class="input-group">
+        <div class="input-group" id="dob-box">
             <label>D.O.B.</label>
             <input type="text" id="auth_dob" class="std-input" placeholder="DD-MM-YYYY" oninput="maskDate(this)">
         </div>
         <button class="btn btn-blue" id="loadBtn" onclick="appAction('fetchRecord')">LOAD DATA</button>
-        <button class="btn btn-outline" onclick="appAction('register')">REGISTER</button>
+        <button class="btn btn-outline" id="regBtn" onclick="appAction('register')">REGISTER</button>
+        <button class="btn btn-outline" id="logoutBtn" style="display:none" onclick="logout()">LOGOUT</button>
     </div>
-    <button class="btn btn-outline" onclick="toggleAdmin(true)">ADMIN PANEL</button>
+    <div id="admin-toggle-box">
+        <button class="btn btn-outline" id="adminPanelBtn" onclick="toggleAdminModal(true)">ADMIN PANEL</button>
+        <button class="btn btn-outline" id="exitAdminBtn" style="display:none" onclick="exitAdmin()">EXIT ADMIN</button>
+    </div>
 </header>
 
 <nav id="dynamicNav"></nav>
 
+<!-- User View -->
 <div class="container" id="mainView">
     <div style="text-align:center; padding-top: 100px; color: var(--text-light);">
         <h3>PMIS Dynamic Management Portal</h3>
         <p>Authenticate with your PMIS Code and D.O.B to access your employee records.</p>
+    </div>
+</div>
+
+<!-- Admin Dashboard View -->
+<div class="container" id="adminView">
+    <div class="card">
+        <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 style="border:none; margin:0">System Configuration Management</h2>
+            <div style="display:flex; gap:10px">
+                <button class="btn btn-success" onclick="saveAdminChanges()">PUBLISH CHANGES</button>
+            </div>
+        </div>
+
+        <div style="display:flex; gap:20px; flex-wrap: wrap; margin-bottom: 30px; background: #f8f9fa; padding: 20px; border-radius: 8px;">
+            <div class="input-group">
+                <label>Add New Section</label>
+                <div style="display:flex; gap:8px">
+                    <input type="text" id="newSecName" class="std-input" placeholder="Section Name" style="background:#fff">
+                    <button class="btn btn-blue" onclick="addNewSection()">ADD</button>
+                </div>
+            </div>
+            <div class="input-group" style="margin-left:auto">
+                <label>Admin Password</label>
+                <input type="password" id="newAdminPass" class="std-input" placeholder="New Password" style="background:#fff">
+            </div>
+        </div>
+
+        <div class="admin-table-wrap">
+            <table id="schemaTable">
+                <thead>
+                    <tr>
+                        <th>Field Name (ID)</th>
+                        <th>Label</th>
+                        <th>Section</th>
+                        <th>Type</th>
+                        <th>Max Chars</th>
+                        <th>Order</th>
+                        <th>Options (if Select)</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="schemaBody"></tbody>
+            </table>
+        </div>
+        
+        <div style="margin-top:20px">
+            <button class="btn btn-outline" onclick="addNewFieldRow()">+ ADD NEW COLUMN</button>
+        </div>
     </div>
 </div>
 
@@ -139,7 +205,7 @@
         <p style="font-size:13px; color:var(--text-light)">Enter master password to manage system configuration.</p>
         <input type="password" id="adminPass" class="std-input" style="width:100%; margin: 15px 0;" placeholder="Master Password">
         <div style="display:flex; gap:10px; justify-content: flex-end;">
-            <button class="btn btn-outline" onclick="toggleAdmin(false)">CANCEL</button>
+            <button class="btn btn-outline" onclick="toggleAdminModal(false)">CANCEL</button>
             <button class="btn btn-blue" onclick="authAdmin()">LOGIN</button>
         </div>
     </div>
@@ -152,26 +218,34 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbyAChte2KM6IUkT2pWXNeDCTZpdFVjLkMSZIP65W-Q-bAWvqFBVJkHSRaHXuhFfI2XC/exec";
     
     let SCHEMA = [];
+    let SECTIONS = [];
     let CURRENT_USER_PMIS = "";
     let isLocked = false;
+    let currentAdminPass = "";
 
     // --- INITIAL SYSTEM LOAD ---
     window.onload = async () => {
+        await refreshSchema();
+    };
+
+    async function refreshSchema() {
         const response = await apiRequest({ action: "getSchema" });
         if(response.fields && response.fields.length > 0) {
             SCHEMA = response.fields;
-            console.log("Dynamic Engine Loaded:", SCHEMA.length, "fields mapped.");
-        } else {
-            notify("System Schema not found. Check App_Config tab.");
+            SECTIONS = [...new Set(SCHEMA.map(f => f.Section))].filter(Boolean);
+            console.log("Schema Refresh:", SCHEMA.length, "fields.");
+            if(document.getElementById('adminView').style.display === 'block') {
+                renderAdminDashboard();
+            }
         }
-    };
+    }
 
     async function apiRequest(body) {
         try {
             const response = await fetch(API_URL, { 
                 method: 'POST', 
                 body: JSON.stringify(body),
-                headers: { 'Content-Type': 'text/plain' } // Avoid pre-flight CORS issues
+                headers: { 'Content-Type': 'text/plain' }
             });
             return await response.json();
         } catch(e) { 
@@ -187,24 +261,19 @@
         setTimeout(() => toast.style.display='none', 3500);
     }
 
-    // --- DYNAMIC UI BUILDER ---
+    // --- USER DASHBOARD ---
     function buildDashboard(userData = {}) {
         const view = document.getElementById('mainView');
         const nav = document.getElementById('dynamicNav');
         view.innerHTML = ""; nav.innerHTML = "";
 
-        // Identify unique sections from schema
-        const sections = [...new Set(SCHEMA.map(f => f.Section))].filter(Boolean);
-        
-        sections.forEach((secName, idx) => {
-            // Navigation tab
+        SECTIONS.forEach((secName, idx) => {
             const link = document.createElement('a');
             link.href = `#sec-${idx}`;
             link.className = `nav-item ${idx === 0 ? 'active' : ''}`;
             link.innerText = secName;
             nav.appendChild(link);
 
-            // Section Card
             const card = document.createElement('section');
             card.id = `sec-${idx}`;
             card.className = "card";
@@ -212,7 +281,6 @@
             const grid = document.createElement('div');
             grid.className = "grid";
 
-            // Map fields to this section
             SCHEMA.filter(f => f.Section === secName).forEach(f => {
                 grid.appendChild(createField(f, userData[f["Field Name"]] || ""));
             });
@@ -220,6 +288,13 @@
             card.appendChild(grid);
             view.appendChild(card);
         });
+
+        // Toggle UI
+        document.getElementById('pmis-box').style.display = 'none';
+        document.getElementById('dob-box').style.display = 'none';
+        document.getElementById('loadBtn').style.display = 'none';
+        document.getElementById('regBtn').style.display = 'none';
+        document.getElementById('logoutBtn').style.display = 'block';
 
         initScrollSpy();
     }
@@ -234,10 +309,9 @@
         inputWrap.className = "input-wrap";
 
         let inputElement;
-        // Selection Logic
-        if(f.Type === 'Yes/No' || f.Options) {
+        if(f.Type === 'Yes/No' || f.Type === 'Select') {
             inputElement = document.createElement('select');
-            const opts = f.Options ? f.Options.split(',') : ["YES", "NO"];
+            const opts = (f.Options && f.Options.trim() !== "") ? f.Options.split(',') : (f.Type === 'Yes/No' ? ["YES", "NO"] : []);
             inputElement.innerHTML = `<option value="">SELECT</option>` + opts.map(o => `<option value="${o.trim()}">${o.trim()}</option>`).join('');
         } else if(f.Type === 'Paragraph') {
             inputElement = document.createElement('textarea');
@@ -254,18 +328,13 @@
 
         inputElement.oninput = () => {
             inputWrap.querySelector('.save-btn').style.display = "block";
-            // Formatting masks
             if(f.Type === 'Date') maskDate(inputElement);
             if(f.Type === 'Mobile') maskMobile(inputElement);
             if(f.Type === 'Aadhaar') maskAadhaar(inputElement);
             if(f.Type === 'Marks') calcPct(inputElement.value, f["Field Name"]);
             
-            // Handle conditional field disabling (Professional Section)
-            if(f.Type === 'Yes/No' && inputElement.value === 'NO') {
-                processDependencies(f);
-            } else if(f.Type === 'Yes/No' && inputElement.value === 'YES') {
-                enableDependencies(f);
-            }
+            if(f.Type === 'Yes/No' && inputElement.value === 'NO') processDependencies(f, true);
+            else if(f.Type === 'Yes/No' && inputElement.value === 'YES') processDependencies(f, false);
         };
 
         const saveButton = document.createElement('button');
@@ -281,28 +350,137 @@
         inputWrap.appendChild(syncBadge);
         fieldDiv.appendChild(inputWrap);
 
-        // Pre-calculate percentage if data exists
         if(f.Type === 'Marks' && currentVal) calcPct(currentVal, f["Field Name"]);
         return fieldDiv;
     }
 
-    // --- TRANSACTION LOGIC ---
-    async function appAction(actionType) {
-        const pmis = document.getElementById('auth_pmis').value;
-        const dob = document.getElementById('auth_dob').value;
-        if(pmis.length < 5 || dob.length < 10) return notify("Enter 5-digit PMIS and D.O.B (DD-MM-YYYY).");
+    // --- ADMIN DASHBOARD ---
+    function renderAdminDashboard() {
+        const body = document.getElementById('schemaBody');
+        body.innerHTML = "";
+
+        SCHEMA.forEach((f, i) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><input type="text" class="admin-input" value="${f["Field Name"]}" readonly style="background:#eee"></td>
+                <td><input type="text" class="admin-input" name="label" value="${f.Label || ''}"></td>
+                <td>
+                    <select class="admin-input" name="section">
+                        ${SECTIONS.map(s => `<option value="${s}" ${s === f.Section ? 'selected' : ''}>${s}</option>`).join('')}
+                    </select>
+                </td>
+                <td>
+                    <select class="admin-input" name="type">
+                        ${["Short Text", "Paragraph", "Date", "Yes/No", "Marks", "Mobile", "Aadhaar", "PAN", "Email", "IFSC", "Select"].map(t => `<option value="${t}" ${t === f.Type ? 'selected' : ''}>${t}</option>`).join('')}
+                    </select>
+                </td>
+                <td><input type="number" class="admin-input" name="maxChars" value="${f.MaxChars || ''}" style="width:70px"></td>
+                <td><input type="number" class="admin-input" name="order" value="${f.Order || ''}" style="width:60px"></td>
+                <td><input type="text" class="admin-input" name="options" value="${f.Options || ''}" placeholder="Comma separated"></td>
+                <td><button class="btn btn-danger" onclick="removeFieldRow(this)" style="padding:5px 10px; font-size:11px">DEL</button></td>
+            `;
+            body.appendChild(tr);
+        });
+        document.getElementById('newAdminPass').value = currentAdminPass;
+    }
+
+    function addNewSection() {
+        const name = document.getElementById('newSecName').value.trim();
+        if(!name) return;
+        if(SECTIONS.includes(name)) return notify("Section already exists.");
+        SECTIONS.push(name);
+        document.getElementById('newSecName').value = "";
+        renderAdminDashboard();
+        notify("Section added to list.");
+    }
+
+    function addNewFieldRow() {
+        const body = document.getElementById('schemaBody');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><input type="text" class="admin-input" name="fieldName" placeholder="NewColName"></td>
+            <td><input type="text" class="admin-input" name="label" placeholder="Display Label"></td>
+            <td>
+                <select class="admin-input" name="section">
+                    ${SECTIONS.map(s => `<option value="${s}">${s}</option>`).join('')}
+                </select>
+            </td>
+            <td>
+                <select class="admin-input" name="type">
+                    ${["Short Text", "Paragraph", "Date", "Yes/No", "Marks", "Mobile", "Aadhaar", "PAN", "Email", "IFSC", "Select"].map(t => `<option value="${t}">${t}</option>`).join('')}
+                </select>
+            </td>
+            <td><input type="number" class="admin-input" name="maxChars" style="width:70px"></td>
+            <td><input type="number" class="admin-input" name="order" style="width:60px"></td>
+            <td><input type="text" class="admin-input" name="options" placeholder="Comma separated"></td>
+            <td><button class="btn btn-danger" onclick="removeFieldRow(this)" style="padding:5px 10px; font-size:11px">DEL</button></td>
+        `;
+        body.appendChild(tr);
+    }
+
+    function removeFieldRow(btn) {
+        if(confirm("Are you sure? This removes the field from UI configuration.")) {
+            btn.closest('tr').remove();
+        }
+    }
+
+    async function saveAdminChanges() {
+        if(isLocked) return;
+        const rows = document.querySelectorAll('#schemaBody tr');
+        const newSchemaFields = [];
+        
+        for(let row of rows) {
+            const fieldName = row.cells[0].querySelector('input').value.trim();
+            const label = row.querySelector('[name="label"]').value.trim();
+            const section = row.querySelector('[name="section"]').value;
+            const type = row.querySelector('[name="type"]').value;
+            const maxChars = row.querySelector('[name="maxChars"]').value;
+            const order = row.querySelector('[name="order"]').value;
+            const options = row.querySelector('[name="options"]').value;
+            const required = "NO"; // Default
+
+            if(!fieldName) { notify("Field Name cannot be empty."); return; }
+            
+            newSchemaFields.push({ fieldName, label, section, type, maxChars, required, order, options });
+        }
+
+        const newPass = document.getElementById('newAdminPass').value || currentAdminPass;
 
         setLockedState(true);
-        const result = await apiRequest({ action: actionType, pmisCode: pmis, dob: dob });
+        notify("Syncing System Configuration...");
         
-        if(result.status === "found") {
-            CURRENT_USER_PMIS = pmis;
-            buildDashboard(result);
-            notify("Sync Complete.");
-        } else if(result.status === "success") {
-            notify(result.message || "Registration Successful. You can now LOAD.");
+        const res = await apiRequest({
+            action: "updateConfig",
+            configData: { fields: newSchemaFields },
+            password: newPass
+        });
+
+        if(res.status === "success") {
+            currentAdminPass = newPass;
+            notify("Configuration Published Successfully!");
+            await refreshSchema();
         } else {
-            notify(result.message || "Operation failed.");
+            notify(res.message || "Failed to publish configuration.");
+        }
+        setLockedState(false);
+    }
+
+    // --- SYSTEM ACTIONS ---
+    async function appAction(type) {
+        const pmis = document.getElementById('auth_pmis').value;
+        const dob = document.getElementById('auth_dob').value;
+        if(pmis.length < 5 || dob.length < 10) return notify("Enter 5-digit PMIS and D.O.B.");
+
+        setLockedState(true);
+        const res = await apiRequest({ action: type, pmisCode: pmis, dob: dob });
+        if(res.status === "found") {
+            CURRENT_USER_PMIS = pmis;
+            buildDashboard(res);
+            notify("Data Sync Complete.");
+        } else if(res.status === "success") {
+            notify(res.message || "Success! Click LOAD to view.");
+        } else {
+            notify(res.message || "Operation failed.");
         }
         setLockedState(false);
     }
@@ -311,35 +489,80 @@
         if(isLocked) return;
         const btn = el.parentNode.querySelector('.save-btn');
         const badge = el.parentNode.querySelector('.sync-badge');
-        
         setLockedState(true);
         btn.style.display = "none";
         badge.innerHTML = '<span class="spin">⏳</span>';
 
-        const response = await apiRequest({
+        const res = await apiRequest({
             action: "atomicUpdate",
             pmisCode: CURRENT_USER_PMIS,
             fieldName: el.id,
             value: el.value
         });
 
-        if(response.status === "success") {
+        if(res.status === "success") {
             badge.innerText = "✅";
             setTimeout(() => badge.innerText = "", 2500);
         } else {
             badge.innerText = "❌";
             btn.style.display = "block";
-            notify(response.message);
+            notify(res.message);
         }
         setLockedState(false);
     }
 
+    function logout() {
+        location.reload();
+    }
+
+    function exitAdmin() {
+        document.getElementById('adminView').style.display = 'none';
+        document.getElementById('mainView').style.display = 'block';
+        document.getElementById('exitAdminBtn').style.display = 'none';
+        document.getElementById('adminPanelBtn').style.display = 'block';
+        document.getElementById('dynamicNav').style.display = 'flex';
+        document.getElementById('pmis-box').style.display = 'flex';
+        document.getElementById('dob-box').style.display = 'flex';
+        document.getElementById('loadBtn').style.display = 'block';
+        document.getElementById('regBtn').style.display = 'block';
+    }
+
+    // --- ADMIN AUTH ---
+    function toggleAdminModal(show) { document.getElementById('adminOverlay').style.display = show ? 'flex' : 'none'; }
+    async function authAdmin() {
+        const pass = document.getElementById('adminPass').value;
+        setLockedState(true);
+        const res = await apiRequest({ action: "adminAuth", password: pass });
+        setLockedState(false);
+        if(res.authorized) {
+            currentAdminPass = pass;
+            toggleAdminModal(false);
+            showAdminDashboard();
+        } else {
+            notify("Unauthorized Access.");
+        }
+    }
+
+    function showAdminDashboard() {
+        document.getElementById('mainView').style.display = 'none';
+        document.getElementById('adminView').style.display = 'block';
+        document.getElementById('dynamicNav').style.display = 'none';
+        document.getElementById('adminPanelBtn').style.display = 'none';
+        document.getElementById('exitAdminBtn').style.display = 'block';
+        // Hide auth row in admin mode for cleaner space
+        document.getElementById('pmis-box').style.display = 'none';
+        document.getElementById('dob-box').style.display = 'none';
+        document.getElementById('loadBtn').style.display = 'none';
+        document.getElementById('regBtn').style.display = 'none';
+        renderAdminDashboard();
+        notify("Administrator Dashboard Active.");
+    }
+
+    // --- HELPERS ---
     function setLockedState(locked) {
         isLocked = locked;
         document.querySelectorAll('.btn, .save-btn').forEach(b => b.disabled = locked);
     }
-
-    // --- MASKING & CALCULATION HELPERS ---
     function maskDate(e) {
         let v = e.value.replace(/\D/g,'').slice(0,8);
         if(v.length >= 2) v = v.slice(0,2) + '-' + v.slice(2);
@@ -360,36 +583,24 @@
         if(!badge || !val.includes('/')) { if(badge) badge.innerText=""; return; }
         const p = val.split('/');
         const obs = parseFloat(p[0]); const tot = parseFloat(p[1]);
-        if(!isNaN(obs) && !isNaN(tot) && tot > 0) {
-            badge.innerText = ((obs/tot)*100).toFixed(2) + "%";
-        }
+        if(!isNaN(obs) && !isNaN(tot) && tot > 0) badge.innerText = ((obs/tot)*100).toFixed(2) + "%";
     }
-
-    function processDependencies(f) {
-        const myIndex = SCHEMA.indexOf(f);
-        // Wipe and disable next 2 fields in sequence if same section (Marks/Date)
-        for(let i=1; i<=2; i++) {
-            const nextField = SCHEMA[myIndex + i];
-            if(nextField && nextField.Section === f.Section) {
-                const target = document.getElementById(nextField["Field Name"]);
-                if(target) { target.value = ""; target.disabled = true; }
-            }
-        }
-    }
-
-    function enableDependencies(f) {
+    function processDependencies(f, disable) {
         const myIndex = SCHEMA.indexOf(f);
         for(let i=1; i<=2; i++) {
             const nextField = SCHEMA[myIndex + i];
             if(nextField && nextField.Section === f.Section) {
                 const target = document.getElementById(nextField["Field Name"]);
-                if(target) target.disabled = false;
+                if(target) { 
+                    if(disable) target.value = ""; 
+                    target.disabled = disable; 
+                }
             }
         }
     }
-
     function initScrollSpy() {
         window.onscroll = () => {
+            if(document.getElementById('mainView').style.display === 'none') return;
             let activeSec = "";
             document.querySelectorAll('section.card').forEach(card => {
                 if(window.pageYOffset >= (card.offsetTop - 180)) activeSec = card.id;
@@ -398,19 +609,6 @@
                 link.classList.toggle('active', link.href.includes(activeSec));
             });
         };
-    }
-
-    // --- ADMIN ACCESS ---
-    function toggleAdmin(show) { document.getElementById('adminOverlay').style.display = show ? 'flex' : 'none'; }
-    async function authAdmin() {
-        const pass = document.getElementById('adminPass').value;
-        const res = await apiRequest({ action: "adminAuth", password: pass });
-        if(res.authorized) {
-            notify("Master Access Granted. Manage App_Config directly in Google Sheets.");
-            toggleAdmin(false);
-        } else {
-            notify("Access Denied: Incorrect Password.");
-        }
     }
 </script>
 </body>
