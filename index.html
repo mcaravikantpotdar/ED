@@ -14,7 +14,7 @@
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { font-family: 'Segoe UI', Roboto, Arial, sans-serif; margin: 0; background: var(--bg); color: var(--text); }
+        body { font-family: 'Segoe UI', Roboto, Arial, sans-serif; margin: 0; background: var(--bg); color: var(--text); line-height: 1.5; }
 
         /* --- STICKY HEADER --- */
         header { 
@@ -70,7 +70,8 @@
             border-radius: 4px; background: #fff; width: 100%; outline: none;
             text-transform: uppercase; transition: border 0.2s;
         }
-        input:focus { border-color: var(--primary); }
+        input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(26,115,232,0.1); }
+        input[disabled], select[disabled] { background: #f8f9fa; cursor: not-allowed; color: #9aa0a6; }
 
         .save-btn { 
             background: var(--success); color: white; border: none; padding: 10px 14px; 
@@ -126,15 +127,17 @@
 
 <div class="container" id="mainView">
     <div style="text-align:center; padding-top: 100px; color: var(--text-light);">
-        <h3>PMIS Professional Dashboard</h3>
-        <p>Enter your PMIS Code and D.O.B to access your dynamic profile.</p>
+        <h3>PMIS Dynamic Management Portal</h3>
+        <p>Authenticate with your PMIS Code and D.O.B to access your employee records.</p>
     </div>
 </div>
 
+<!-- Admin Access Modal -->
 <div class="overlay" id="adminOverlay">
     <div class="modal">
         <h3>Admin Access</h3>
-        <input type="password" id="adminPass" class="std-input" style="width:100%; margin: 15px 0;" placeholder="Enter Master Password">
+        <p style="font-size:13px; color:var(--text-light)">Enter master password to manage system configuration.</p>
+        <input type="password" id="adminPass" class="std-input" style="width:100%; margin: 15px 0;" placeholder="Master Password">
         <div style="display:flex; gap:10px; justify-content: flex-end;">
             <button class="btn btn-outline" onclick="toggleAdmin(false)">CANCEL</button>
             <button class="btn btn-blue" onclick="authAdmin()">LOGIN</button>
@@ -145,174 +148,198 @@
 <div id="toast"></div>
 
 <script>
-    // --- INTEGRATED URL ---
+    // --- INTEGRATED WEB APP URL ---
     const API_URL = "https://script.google.com/macros/s/AKfycbyAChte2KM6IUkT2pWXNeDCTZpdFVjLkMSZIP65W-Q-bAWvqFBVJkHSRaHXuhFfI2XC/exec";
     
     let SCHEMA = [];
-    let LOGGED_IN_PMIS = "";
-    let isBusy = false;
+    let CURRENT_USER_PMIS = "";
+    let isLocked = false;
 
-    // --- SYSTEM LOAD ---
+    // --- INITIAL SYSTEM LOAD ---
     window.onload = async () => {
-        const res = await apiRequest({ action: "getSchema" });
-        if(res.fields) {
-            SCHEMA = res.fields;
-            console.log("Schema Initialized:", SCHEMA.length, "fields found.");
+        const response = await apiRequest({ action: "getSchema" });
+        if(response.fields && response.fields.length > 0) {
+            SCHEMA = response.fields;
+            console.log("Dynamic Engine Loaded:", SCHEMA.length, "fields mapped.");
+        } else {
+            notify("System Schema not found. Check App_Config tab.");
         }
     };
 
     async function apiRequest(body) {
         try {
-            const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify(body) });
-            return await r.json();
-        } catch(e) { notify("Backend connection failed."); return {status:"error"}; }
+            const response = await fetch(API_URL, { 
+                method: 'POST', 
+                body: JSON.stringify(body),
+                headers: { 'Content-Type': 'text/plain' } // Avoid pre-flight CORS issues
+            });
+            return await response.json();
+        } catch(e) { 
+            notify("Connection lost. Please check internet or App URL."); 
+            return {status: "error"}; 
+        }
     }
 
-    function notify(m) {
-        const t = document.getElementById('toast');
-        t.innerText = m; t.style.display = 'block';
-        setTimeout(() => t.style.display='none', 3500);
+    function notify(message) {
+        const toast = document.getElementById('toast');
+        toast.innerText = message;
+        toast.style.display = 'block';
+        setTimeout(() => toast.style.display='none', 3500);
     }
 
-    // --- UI RENDERER ---
-    function buildUI(userData = {}) {
+    // --- DYNAMIC UI BUILDER ---
+    function buildDashboard(userData = {}) {
         const view = document.getElementById('mainView');
         const nav = document.getElementById('dynamicNav');
         view.innerHTML = ""; nav.innerHTML = "";
 
+        // Identify unique sections from schema
         const sections = [...new Set(SCHEMA.map(f => f.Section))].filter(Boolean);
         
-        sections.forEach((sec, idx) => {
+        sections.forEach((secName, idx) => {
+            // Navigation tab
             const link = document.createElement('a');
             link.href = `#sec-${idx}`;
             link.className = `nav-item ${idx === 0 ? 'active' : ''}`;
-            link.innerText = sec;
+            link.innerText = secName;
             nav.appendChild(link);
 
+            // Section Card
             const card = document.createElement('section');
             card.id = `sec-${idx}`;
             card.className = "card";
-            card.innerHTML = `<h2>${sec}</h2>`;
+            card.innerHTML = `<h2>${secName}</h2>`;
             const grid = document.createElement('div');
             grid.className = "grid";
 
-            SCHEMA.filter(f => f.Section === sec).forEach(f => {
-                grid.appendChild(renderField(f, userData[f["Field Name"]] || ""));
+            // Map fields to this section
+            SCHEMA.filter(f => f.Section === secName).forEach(f => {
+                grid.appendChild(createField(f, userData[f["Field Name"]] || ""));
             });
 
             card.appendChild(grid);
             view.appendChild(card);
         });
 
-        setupScrollSpy();
+        initScrollSpy();
     }
 
-    function renderField(f, val) {
-        const div = document.createElement('div');
-        div.className = "field";
-        const label = f.Label || f["Field Name"];
-        div.innerHTML = `<label>${label}${f.Type === 'Marks' ? '<span class="pct-badge" id="pct-'+f["Field Name"]+'"></span>' : ''}</label>`;
+    function createField(f, currentVal) {
+        const fieldDiv = document.createElement('div');
+        fieldDiv.className = "field";
+        const labelText = f.Label || f["Field Name"];
+        fieldDiv.innerHTML = `<label>${labelText}${f.Type === 'Marks' ? '<span class="pct-badge" id="pct-'+f["Field Name"]+'"></span>' : ''}</label>`;
         
-        const wrap = document.createElement('div');
-        wrap.className = "input-wrap";
+        const inputWrap = document.createElement('div');
+        inputWrap.className = "input-wrap";
 
-        let input;
+        let inputElement;
+        // Selection Logic
         if(f.Type === 'Yes/No' || f.Options) {
-            input = document.createElement('select');
-            const options = f.Options ? f.Options.split(',') : ["YES", "NO"];
-            input.innerHTML = `<option value="">SELECT</option>` + options.map(o => `<option value="${o.trim()}">${o.trim()}</option>`).join('');
+            inputElement = document.createElement('select');
+            const opts = f.Options ? f.Options.split(',') : ["YES", "NO"];
+            inputElement.innerHTML = `<option value="">SELECT</option>` + opts.map(o => `<option value="${o.trim()}">${o.trim()}</option>`).join('');
         } else if(f.Type === 'Paragraph') {
-            input = document.createElement('textarea');
-            input.rows = 1;
+            inputElement = document.createElement('textarea');
+            inputElement.rows = 1;
         } else {
-            input = document.createElement('input');
-            input.type = "text";
+            inputElement = document.createElement('input');
+            inputElement.type = "text";
         }
 
-        input.id = f["Field Name"];
-        input.value = val;
-        if(f.MaxChars) input.maxLength = f.MaxChars;
-        if(f.Type === 'Email') input.style.textTransform = "lowercase";
+        inputElement.id = f["Field Name"];
+        inputElement.value = currentVal;
+        if(f.MaxChars) inputElement.maxLength = f.MaxChars;
+        if(f.Type === 'Email') inputElement.style.textTransform = "lowercase";
 
-        input.oninput = () => {
-            wrap.querySelector('.save-btn').style.display = "block";
-            if(f.Type === 'Date') maskDate(input);
-            if(f.Type === 'Mobile') maskMobile(input);
-            if(f.Type === 'Aadhaar') maskAadhaar(input);
-            if(f.Type === 'Marks') calculatePct(input.value, f["Field Name"]);
-            if(f.Type === 'Yes/No' && input.value === 'NO') applyNoLogic(f);
+        inputElement.oninput = () => {
+            inputWrap.querySelector('.save-btn').style.display = "block";
+            // Formatting masks
+            if(f.Type === 'Date') maskDate(inputElement);
+            if(f.Type === 'Mobile') maskMobile(inputElement);
+            if(f.Type === 'Aadhaar') maskAadhaar(inputElement);
+            if(f.Type === 'Marks') calcPct(inputElement.value, f["Field Name"]);
+            
+            // Handle conditional field disabling (Professional Section)
+            if(f.Type === 'Yes/No' && inputElement.value === 'NO') {
+                processDependencies(f);
+            } else if(f.Type === 'Yes/No' && inputElement.value === 'YES') {
+                enableDependencies(f);
+            }
         };
 
-        const saveBtn = document.createElement('button');
-        saveBtn.className = "save-btn";
-        saveBtn.innerText = "SAVE";
-        saveBtn.onclick = () => saveAtomic(input);
+        const saveButton = document.createElement('button');
+        saveButton.className = "save-btn";
+        saveButton.innerText = "SAVE";
+        saveButton.onclick = () => saveField(inputElement);
 
-        const status = document.createElement('div');
-        status.className = "sync-badge";
+        const syncBadge = document.createElement('div');
+        syncBadge.className = "sync-badge";
 
-        wrap.appendChild(input);
-        wrap.appendChild(saveBtn);
-        wrap.appendChild(status);
-        div.appendChild(wrap);
+        inputWrap.appendChild(inputElement);
+        inputWrap.appendChild(saveButton);
+        inputWrap.appendChild(syncBadge);
+        fieldDiv.appendChild(inputWrap);
 
-        if(f.Type === 'Marks' && val) calculatePct(val, f["Field Name"]);
-        return div;
+        // Pre-calculate percentage if data exists
+        if(f.Type === 'Marks' && currentVal) calcPct(currentVal, f["Field Name"]);
+        return fieldDiv;
     }
 
-    // --- CORE LOGIC ---
-    async function appAction(action) {
+    // --- TRANSACTION LOGIC ---
+    async function appAction(actionType) {
         const pmis = document.getElementById('auth_pmis').value;
         const dob = document.getElementById('auth_dob').value;
-        if(pmis.length < 5 || dob.length < 10) return notify("Enter PMIS (5 digits) & D.O.B (DD-MM-YYYY).");
+        if(pmis.length < 5 || dob.length < 10) return notify("Enter 5-digit PMIS and D.O.B (DD-MM-YYYY).");
 
-        setBusy(true);
-        const res = await apiRequest({ action, pmisCode: pmis, dob: dob });
-        if(res.status === "found") {
-            LOGGED_IN_PMIS = pmis;
-            buildUI(res);
-            notify("Record Loaded.");
-        } else if(res.status === "success") {
-            notify(res.message || "Action Successful.");
+        setLockedState(true);
+        const result = await apiRequest({ action: actionType, pmisCode: pmis, dob: dob });
+        
+        if(result.status === "found") {
+            CURRENT_USER_PMIS = pmis;
+            buildDashboard(result);
+            notify("Sync Complete.");
+        } else if(result.status === "success") {
+            notify(result.message || "Registration Successful. You can now LOAD.");
         } else {
-            notify(res.message || "Error occurred.");
+            notify(result.message || "Operation failed.");
         }
-        setBusy(false);
+        setLockedState(false);
     }
 
-    async function saveAtomic(el) {
-        if(isBusy) return;
+    async function saveField(el) {
+        if(isLocked) return;
         const btn = el.parentNode.querySelector('.save-btn');
         const badge = el.parentNode.querySelector('.sync-badge');
         
-        setBusy(true);
+        setLockedState(true);
         btn.style.display = "none";
         badge.innerHTML = '<span class="spin">⏳</span>';
 
-        const res = await apiRequest({
+        const response = await apiRequest({
             action: "atomicUpdate",
-            pmisCode: LOGGED_IN_PMIS,
+            pmisCode: CURRENT_USER_PMIS,
             fieldName: el.id,
             value: el.value
         });
 
-        if(res.status === "success") {
+        if(response.status === "success") {
             badge.innerText = "✅";
             setTimeout(() => badge.innerText = "", 2500);
         } else {
             badge.innerText = "❌";
             btn.style.display = "block";
-            notify(res.message);
+            notify(response.message);
         }
-        setBusy(false);
+        setLockedState(false);
     }
 
-    function setBusy(val) {
-        isBusy = val;
-        document.querySelectorAll('.btn, .save-btn').forEach(b => b.disabled = val);
+    function setLockedState(locked) {
+        isLocked = locked;
+        document.querySelectorAll('.btn, .save-btn').forEach(b => b.disabled = locked);
     }
 
-    // --- HELPERS ---
+    // --- MASKING & CALCULATION HELPERS ---
     function maskDate(e) {
         let v = e.value.replace(/\D/g,'').slice(0,8);
         if(v.length >= 2) v = v.slice(0,2) + '-' + v.slice(2);
@@ -328,48 +355,61 @@
         let v = e.value.replace(/\D/g,'').slice(0,12);
         let m = v.match(/.{1,4}/g); e.value = m ? m.join(' ') : v;
     }
-    function calculatePct(val, id) {
-        const badge = document.getElementById('pct-'+id);
+    function calcPct(val, fieldId) {
+        const badge = document.getElementById('pct-'+fieldId);
         if(!badge || !val.includes('/')) { if(badge) badge.innerText=""; return; }
-        const parts = val.split('/');
-        const obs = parseFloat(parts[0]); const tot = parseFloat(parts[1]);
-        if(!isNaN(obs) && !isNaN(tot) && tot > 0) badge.innerText = ((obs/tot)*100).toFixed(2) + "%";
+        const p = val.split('/');
+        const obs = parseFloat(p[0]); const tot = parseFloat(p[1]);
+        if(!isNaN(obs) && !isNaN(tot) && tot > 0) {
+            badge.innerText = ((obs/tot)*100).toFixed(2) + "%";
+        }
     }
 
-    function applyNoLogic(f) {
-        const myIdx = SCHEMA.indexOf(f);
-        // Wipe and disable next 2 fields if they are linked marks/date
+    function processDependencies(f) {
+        const myIndex = SCHEMA.indexOf(f);
+        // Wipe and disable next 2 fields in sequence if same section (Marks/Date)
         for(let i=1; i<=2; i++) {
-            const next = SCHEMA[myIdx + i];
-            if(next && next.Section === f.Section) {
-                const el = document.getElementById(next["Field Name"]);
-                if(el) { el.value = ""; el.disabled = true; }
+            const nextField = SCHEMA[myIndex + i];
+            if(nextField && nextField.Section === f.Section) {
+                const target = document.getElementById(nextField["Field Name"]);
+                if(target) { target.value = ""; target.disabled = true; }
             }
         }
     }
 
-    function setupScrollSpy() {
+    function enableDependencies(f) {
+        const myIndex = SCHEMA.indexOf(f);
+        for(let i=1; i<=2; i++) {
+            const nextField = SCHEMA[myIndex + i];
+            if(nextField && nextField.Section === f.Section) {
+                const target = document.getElementById(nextField["Field Name"]);
+                if(target) target.disabled = false;
+            }
+        }
+    }
+
+    function initScrollSpy() {
         window.onscroll = () => {
-            let active = "";
-            document.querySelectorAll('.card').forEach(s => {
-                if(window.pageYOffset >= (s.offsetTop - 180)) active = s.id;
+            let activeSec = "";
+            document.querySelectorAll('section.card').forEach(card => {
+                if(window.pageYOffset >= (card.offsetTop - 180)) activeSec = card.id;
             });
-            document.querySelectorAll('.nav-item').forEach(l => {
-                l.classList.toggle('active', l.href.includes(active));
+            document.querySelectorAll('.nav-item').forEach(link => {
+                link.classList.toggle('active', link.href.includes(activeSec));
             });
         };
     }
 
-    // --- ADMIN ---
+    // --- ADMIN ACCESS ---
     function toggleAdmin(show) { document.getElementById('adminOverlay').style.display = show ? 'flex' : 'none'; }
     async function authAdmin() {
-        const p = document.getElementById('adminPass').value;
-        const res = await apiRequest({ action: "adminAuth", password: p });
+        const pass = document.getElementById('adminPass').value;
+        const res = await apiRequest({ action: "adminAuth", password: pass });
         if(res.authorized) {
-            notify("Authorized. Open your Google Sheet to manage App_Config.");
+            notify("Master Access Granted. Manage App_Config directly in Google Sheets.");
             toggleAdmin(false);
         } else {
-            notify("Invalid Master Password.");
+            notify("Access Denied: Incorrect Password.");
         }
     }
 </script>
