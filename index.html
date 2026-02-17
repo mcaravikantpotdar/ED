@@ -6,72 +6,186 @@
     <title>PMIS Employee Update Portal</title>
     <style>
         :root {
-            --primary: #1a73e8; --success: #34a853; --error: #ea4335;
-            --bg: #f8f9fa; --card-bg: #ffffff; --border: #dadce0;
-            --text-main: #202124; --text-secondary: #5f6368;
+            --primary: #1a73e8;
+            --success: #34a853;
+            --error: #ea4335;
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --border: #dadce0;
+            --text-main: #202124;
+            --text-secondary: #5f6368;
         }
 
-        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 0; background: var(--bg); color: var(--text-main); scroll-behavior: smooth; }
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            background: var(--bg);
+            color: var(--text-main);
+            scroll-behavior: smooth;
+        }
 
         /* --- STICKY HEADER --- */
         .sticky-header {
-            position: sticky; top: 0; z-index: 1000; background: white; 
-            border-bottom: 1px solid var(--border); padding: 12px 24px; 
-            display: flex; justify-content: space-between; align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: white;
+            border-bottom: 1px solid var(--border);
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
         .header-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
         
-        .pmis-input-wrapper { display: flex; align-items: center; background: #f1f3f4; border-radius: 4px; padding: 4px 8px; border: 1px solid var(--border); transition: border 0.3s; }
-        .pmis-input-wrapper.invalid { border-color: var(--error); background: #fdf2f2; }
+        .pmis-input-wrapper {
+            display: flex;
+            align-items: center;
+            background: #f1f3f4;
+            border-radius: 4px;
+            padding: 4px 8px;
+            border: 1px solid var(--border);
+            transition: border 0.3s;
+        }
         .pmis-input-wrapper label { font-size: 0.75rem; font-weight: bold; margin-right: 8px; color: var(--text-secondary); }
         .pmis-box {
-            border: none; background: transparent; font-weight: bold; width: 85px; 
-            text-align: center; font-size: 1rem; color: var(--primary); outline: none;
+            border: none;
+            background: transparent;
+            font-weight: bold;
+            width: 85px;
+            text-align: center;
+            font-size: 1rem;
+            color: var(--primary);
+            outline: none;
         }
 
-        .btn-load { background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; transition: background 0.2s; }
+        .btn-load {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
         .btn-load:hover { background: #1557b0; }
         .btn-load:disabled { background: #ccc; cursor: not-allowed; }
 
         /* --- STICKY NAV --- */
         .nav-bar {
-            position: sticky; top: 65px; z-index: 999; background: white; 
-            border-bottom: 1px solid var(--border); display: flex; 
-            overflow-x: auto; white-space: nowrap; padding: 0 15px;
+            position: sticky;
+            top: 65px;
+            z-index: 999;
+            background: white;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            overflow-x: auto;
+            white-space: nowrap;
+            padding: 0 15px;
         }
-        .nav-item { padding: 15px 20px; text-decoration: none; color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; border-bottom: 3px solid transparent; }
-        .nav-item:hover, .nav-item.active { color: var(--primary); border-bottom-color: var(--primary); }
+        .nav-item {
+            padding: 15px 20px;
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 500;
+            border-bottom: 3px solid transparent;
+        }
+        .nav-item:hover, .nav-item.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
 
         /* --- CONTENT LAYOUT --- */
-        .content-wrapper { max-width: 1100px; margin: 20px auto; padding: 0 15px; padding-bottom: 100px; }
-        section { background: var(--card-bg); border-radius: 8px; padding: 30px; margin-bottom: 40px; border: 1px solid var(--border); }
-        h2 { margin: 0 0 25px 0; color: var(--primary); font-size: 1.3rem; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .content-wrapper {
+            max-width: 1100px;
+            margin: 20px auto;
+            padding: 0 15px;
+            padding-bottom: 100px;
+        }
+        section {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 30px;
+            margin-bottom: 40px;
+            border: 1px solid var(--border);
+        }
+        h2 {
+            margin: 0 0 25px 0;
+            color: var(--primary);
+            font-size: 1.3rem;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
 
-        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px 40px; }
-        .field-group { position: relative; display: flex; flex-direction: column; }
-        label { font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; color: var(--text-secondary); }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px 40px;
+        }
+        .field-group {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
 
         input, select, textarea {
-            padding: 12px; border: 1px solid var(--border); border-radius: 4px;
-            font-size: 1rem; width: 100%; box-sizing: border-box; outline: none;
-            text-transform: uppercase; transition: all 0.2s;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 1rem;
+            width: 100%;
+            box-sizing: border-box;
+            outline: none;
+            text-transform: uppercase;
+            transition: all 0.2s;
         }
-        input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(26,115,232,0.1); }
-        input.invalid { border-color: var(--error); background-color: #fff8f8; }
-        input[readonly] { background: #f1f3f4; cursor: not-allowed; color: #5f6368; }
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(26,115,232,0.1);
+        }
+        input.invalid {
+            border-color: var(--error);
+            background-color: #fff8f8;
+        }
+        input[readonly] {
+            background: #f1f3f4;
+            cursor: not-allowed;
+            color: #5f6368;
+        }
 
-        .error-hint { font-size: 0.7rem; color: var(--error); margin-top: 4px; display: none; font-weight: 500; }
+        .error-hint {
+            font-size: 0.7rem;
+            color: var(--error);
+            margin-top: 4px;
+            display: none;
+            font-weight: 500;
+        }
         input.invalid + .error-hint { display: block; }
 
         /* --- STATUS ICONS --- */
         .atomic-status {
-            position: absolute; right: -32px; top: 36px; width: 24px; height: 24px;
-            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            position: absolute;
+            right: -32px;
+            top: 36px;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-size: 1.1rem;
         }
-        .atomic-status.dirty { color: var(--primary); opacity: 1; }
+        .atomic-status.dirty { color: var(--primary); }
         .atomic-status.saving { color: orange; animation: spin 1s infinite linear; }
         .atomic-status.synced { color: var(--success); }
         .atomic-status.error { color: var(--error); }
@@ -80,7 +194,15 @@
 
         @media (max-width: 850px) {
             .form-grid { grid-template-columns: 1fr; }
-            .atomic-status { right: 8px; top: 8px; background: white; border-radius: 50%; width: 20px; height: 20px; font-size: 0.9rem; }
+            .atomic-status {
+                right: 8px;
+                top: 8px;
+                background: white;
+                border-radius: 50%;
+                width: 20px;
+                height: 20px;
+                font-size: 0.9rem;
+            }
             .sticky-header { flex-direction: column; padding: 10px; gap: 10px; }
             .nav-bar { top: 140px; }
         }
@@ -90,11 +212,11 @@
 
 <div class="sticky-header">
     <div class="header-controls">
-        <div class="pmis-input-wrapper" id="pmis_wrap">
+        <div class="pmis-input-wrapper">
             <label>PMIS CODE</label>
-            <input type="text" id="global_pmis" class="pmis-box" maxlength="6" placeholder="6 DIGITS" oninput="this.value=this.value.replace(/\D/g,'')">
+            <input type="text" id="global_pmis" class="pmis-box" maxlength="5" placeholder="5 DIGITS" oninput="this.value=this.value.replace(/\D/g,'')">
         </div>
-        <div class="pmis-input-wrapper" id="dob_wrap">
+        <div class="pmis-input-wrapper">
             <label>D.O.B.</label>
             <input type="text" id="auth_dob" class="pmis-box" style="width: 110px;" placeholder="DD-MM-YYYY" oninput="maskDate(this)">
         </div>
@@ -121,17 +243,21 @@
             <div class="field-group">
                 <label>Full Name</label>
                 <input type="text" id="Full Name" data-type="name" onblur="validateAndSave(this)">
-                <span class="error-hint">Only letters and spaces allowed</span>
+                <span class="error-hint">Only letters, dots, and spaces allowed</span>
                 <div class="atomic-status"></div>
             </div>
             <div class="field-group">
                 <label>Gender</label>
-                <select id="Gender" onchange="validateAndSave(this)"><option value="">SELECT</option><option value="MALE">MALE</option><option value="FEMALE">FEMALE</option></select>
+                <select id="Gender" onchange="validateAndSave(this)">
+                    <option value="">SELECT</option>
+                    <option value="MALE">MALE</option>
+                    <option value="FEMALE">FEMALE</option>
+                </select>
                 <div class="atomic-status"></div>
             </div>
             <div class="field-group">
                 <label>Designation</label>
-                <input type="text" id="Designation" data-type="text" onblur="validateAndSave(this)">
+                <input type="text" id="Designation" onblur="validateAndSave(this)">
                 <div class="atomic-status"></div>
             </div>
             <div class="field-group">
@@ -146,12 +272,24 @@
             </div>
             <div class="field-group">
                 <label>Social Category</label>
-                <select id="Social Category" onchange="validateAndSave(this)"><option value="">SELECT</option><option value="GENERAL">GENERAL</option><option value="SC">SC</option><option value="ST">ST</option><option value="OBC">OBC</option></select>
+                <select id="Social Category" onchange="validateAndSave(this)">
+                    <option value="">SELECT</option>
+                    <option value="GENERAL">GENERAL</option>
+                    <option value="SC">SC</option>
+                    <option value="ST">ST</option>
+                    <option value="OBC">OBC</option>
+                </select>
                 <div class="atomic-status"></div>
             </div>
             <div class="field-group">
                 <label>Blood Group</label>
-                <select id="Blood Group" onchange="validateAndSave(this)"><option value="">SELECT</option><option value="A+">A+</option><option value="A-">A-</option><option value="B+">B+</option><option value="B-">B-</option><option value="O+">O+</option><option value="O-">O-</option><option value="AB+">AB+</option><option value="AB-">AB-</option></select>
+                <select id="Blood Group" onchange="validateAndSave(this)">
+                    <option value="">SELECT</option>
+                    <option value="A+">A+</option><option value="A-">A-</option>
+                    <option value="B+">B+</option><option value="B-">B-</option>
+                    <option value="O+">O+</option><option value="O-">O-</option>
+                    <option value="AB+">AB+</option><option value="AB-">AB-</option>
+                </select>
                 <div class="atomic-status"></div>
             </div>
         </div>
@@ -164,25 +302,25 @@
             <div class="field-group">
                 <label>Aadhaar Number</label>
                 <input type="text" id="Aadhaar Number" data-type="aadhaar" oninput="maskAadhaar(this)" onblur="validateAndSave(this)" placeholder="0000 0000 0000">
-                <span class="error-hint">Requires 12 digits</span>
+                <span class="error-hint">Requires exactly 12 digits</span>
                 <div class="atomic-status"></div>
             </div>
             <div class="field-group">
                 <label>PAN Number</label>
-                <input type="text" id="PAN Number" data-type="pan" maxlength="10" onblur="validateAndSave(this)" placeholder="AAAAA1111A">
-                <span class="error-hint">Invalid PAN Format (AAAAA0000A)</span>
+                <input type="text" id="PAN Number" data-type="pan" maxlength="10" onblur="validateAndSave(this)" placeholder="ABCDE1234F">
+                <span class="error-hint">Invalid format (Example: ABCDE1234F)</span>
                 <div class="atomic-status"></div>
             </div>
             <div class="field-group">
                 <label>Personal Contact No.</label>
                 <input type="text" id="Personal Contact No." data-type="mobile" oninput="maskMobile(this)" onblur="validateAndSave(this)" placeholder="00000-00000">
-                <span class="error-hint">Requires 10 digits</span>
+                <span class="error-hint">Requires exactly 10 digits</span>
                 <div class="atomic-status"></div>
             </div>
             <div class="field-group">
                 <label>Email ID</label>
-                <input type="text" id="Email ID" data-type="email" style="text-transform: lowercase;" onblur="validateAndSave(this)" placeholder="example@mail.com">
-                <span class="error-hint">Invalid email address</span>
+                <input type="text" id="Email ID" data-type="email" style="text-transform: lowercase;" onblur="validateAndSave(this)" placeholder="name@domain.com">
+                <span class="error-hint">Invalid email format</span>
                 <div class="atomic-status"></div>
             </div>
         </div>
@@ -229,8 +367,8 @@
         const btn = document.getElementById('loadBtn');
         const status = document.getElementById('statusIndicator');
 
-        if (pmis.length !== 6) return alert("PMIS must be 6 digits.");
-        if (!VALIDATION_RULES.date.test(dob)) return alert("Invalid D.O.B format.");
+        if (pmis.length !== 5) return alert("PMIS Code must be exactly 5 digits.");
+        if (!VALIDATION_RULES.date.test(dob)) return alert("Please enter D.O.B. as DD-MM-YYYY for authentication.");
 
         btn.disabled = true;
         status.innerText = "AUTHENTICATING...";
@@ -250,20 +388,25 @@
                 });
                 status.innerText = "RECORD LOADED";
                 status.style.color = "var(--success)";
+                
+                // Set the readonly PMIS field inside the form
+                const formPmis = document.getElementById('PMIS Code');
+                if (formPmis) formPmis.value = pmis;
+
             } else {
                 status.innerText = "AUTH FAILED";
                 status.style.color = "var(--error)";
-                alert(data.message || "Record not found or authentication failed.");
+                alert(data.message || "Authentication failed. Check PMIS Code and D.O.B.");
             }
         } catch (e) {
-            status.innerText = "NETWORK ERROR";
+            status.innerText = "CONNECTION ERROR";
             console.error(e);
         } finally {
             btn.disabled = false;
         }
     }
 
-    // --- VALIDATION & SAVING LOGIC ---
+    // --- VALIDATION & ATOMIC SAVE ---
     function validateAndSave(el) {
         const type = el.getAttribute('data-type');
         const val = el.value.trim();
@@ -271,10 +414,9 @@
 
         if (val === "") {
             el.classList.remove('invalid');
-            return; 
+            return;
         }
 
-        // Run RegEx check
         let isValid = true;
         if (type && VALIDATION_RULES[type]) {
             isValid = VALIDATION_RULES[type].test(val);
@@ -293,7 +435,7 @@
 
     async function performAtomicSave(inputEl, iconEl) {
         const pmis = document.getElementById('global_pmis').value;
-        if (!pmis || pmis.length !== 6) return;
+        if (!pmis || pmis.length !== 5) return;
 
         iconEl.innerText = "⏳";
         iconEl.className = "atomic-status saving";
@@ -312,22 +454,18 @@
                 body: JSON.stringify(payload)
             });
 
-            // Brief delay for visual confirmation
             setTimeout(() => {
                 iconEl.innerText = "✅";
                 iconEl.className = "atomic-status synced";
-                setTimeout(() => { 
-                    if (iconEl.className === "atomic-status synced") iconEl.innerText = ""; 
-                }, 2000);
-            }, 500);
-
+                setTimeout(() => { if (iconEl.className === "atomic-status synced") iconEl.innerText = ""; }, 2000);
+            }, 600);
         } catch (e) {
             iconEl.innerText = "❌";
             iconEl.className = "atomic-status error";
         }
     }
 
-    // --- INPUT MASKS ---
+    // --- FORMATTING MASKS ---
     function maskDate(el) {
         let v = el.value.replace(/\D/g, '').slice(0, 8);
         if (v.length >= 2) v = v.slice(0, 2) + '-' + v.slice(2);
@@ -345,14 +483,10 @@
         el.value = m ? m.join(' ') : v;
     }
 
-    // Block keyboard inputs that violate data types
+    // Keyboard Filters
     document.querySelectorAll('input[data-type="name"]').forEach(el => {
         el.onkeypress = (e) => { if (!/[a-zA-Z\s.]/.test(e.key)) e.preventDefault(); };
     });
-    document.querySelectorAll('input[data-type="number"]').forEach(el => {
-        el.onkeypress = (e) => { if (!/[0-9]/.test(e.key)) e.preventDefault(); };
-    });
-
 </script>
 </body>
 </html>
