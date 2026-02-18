@@ -323,8 +323,23 @@
         if(f.Type === 'Email') inputElement.style.textTransform = "lowercase";
 
         inputElement.oninput = () => {
-            inputWrap.querySelector('.save-btn').style.display = "block";
-            if(f.Type === 'Date') maskDate(inputElement);
+            const saveBtn = inputWrap.querySelector('.save-btn');
+            let isFieldValid = true;
+
+            // Date validation (Flexible: YYYY, MM-YYYY, DD-MM-YYYY)
+            if (f.Type === 'Date') {
+                const val = inputElement.value;
+                const pattern = /^(\d{4}|\d{2}-\d{4}|\d{2}-\d{2}-\d{4})$/;
+                isFieldValid = pattern.test(val);
+            }
+
+            if (isFieldValid) {
+                saveBtn.style.display = "block";
+            } else {
+                saveBtn.style.display = "none";
+            }
+
+            // Apply standard masking for other specific types
             if(f.Type === 'Mobile') maskMobile(inputElement);
             if(f.Type === 'Aadhaar') maskAadhaar(inputElement);
             if(f.Type === 'Marks') calcPct(inputElement.value, f["Field Name"]);
