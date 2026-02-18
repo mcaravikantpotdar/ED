@@ -162,11 +162,8 @@
 
         <div style="display:flex; gap:20px; flex-wrap: wrap; margin-bottom: 30px; background: #f8f9fa; padding: 20px; border-radius: 8px;">
             <div class="input-group">
-                <label>Add New Section</label>
-                <div style="display:flex; gap:8px">
-                    <input type="text" id="newSecName" class="std-input" placeholder="Section Name" style="background:#fff">
-                    <button class="btn btn-blue" onclick="addNewSection()">ADD</button>
-                </div>
+                <label>System Management</label>
+                <p style="font-size: 13px; color: var(--text-light); margin: 0;">Modify fields, update order, or change the admin password below.</p>
             </div>
             <div class="input-group" style="margin-left:auto">
                 <label>Admin Password</label>
@@ -232,6 +229,7 @@
         const response = await apiRequest({ action: "getSchema" });
         if(response.fields && response.fields.length > 0) {
             SCHEMA = response.fields;
+            // Derive unique sections from the schema data
             SECTIONS = [...new Set(SCHEMA.map(f => f.Section))].filter(Boolean);
             if(document.getElementById('adminView').style.display === 'block') {
                 renderAdminDashboard();
@@ -363,9 +361,7 @@
                 <td><input type="text" class="admin-input" value="${f["Field Name"]}" readonly style="background:#eee"></td>
                 <td><input type="text" class="admin-input" name="label" value="${f.Label || ''}"></td>
                 <td>
-                    <select class="admin-input" name="section">
-                        ${SECTIONS.map(s => `<option value="${s}" ${s === f.Section ? 'selected' : ''}>${s}</option>`).join('')}
-                    </select>
+                    <input type="text" class="admin-input" name="section" value="${f.Section || ''}" placeholder="Section Name">
                 </td>
                 <td>
                     <select class="admin-input" name="type">
@@ -382,16 +378,6 @@
         document.getElementById('newAdminPass').value = currentAdminPass;
     }
 
-    function addNewSection() {
-        const name = document.getElementById('newSecName').value.trim();
-        if(!name) return;
-        if(SECTIONS.includes(name)) return notify("Section already exists.");
-        SECTIONS.push(name);
-        document.getElementById('newSecName').value = "";
-        renderAdminDashboard();
-        notify("Section added to list.");
-    }
-
     function addNewFieldRow() {
         const body = document.getElementById('schemaBody');
         const tr = document.createElement('tr');
@@ -399,13 +385,11 @@
             <td><input type="text" class="admin-input" name="fieldName" placeholder="NewColName"></td>
             <td><input type="text" class="admin-input" name="label" placeholder="Display Label"></td>
             <td>
-                <select class="admin-input" name="section">
-                    ${SECTIONS.map(s => `<option value="${s}">${s}</option>`).join('')}
-                </select>
+                <input type="text" class="admin-input" name="section" placeholder="Section Name">
             </td>
             <td>
                 <select class="admin-input" name="type">
-                    ${["Short Text", "Paragraph", "Date", "Yes/No", "Marks", "Mobile", "Aadhaar", "PAN", "Email", "IFSC", "Select"].map(t => `<option value="${t}">${t}</option>`).join('')}
+                    ${["Short Text", "Paragraph", "Date", "Yes/No", "Marks", "Mobile", "Aadhaar", "PAN", "Email", "IFSC", "Select"].map(t => `<option value="${t}"> ${t}</option>`).join('')}
                 </select>
             </td>
             <td><input type="number" class="admin-input" name="maxChars" style="width:70px"></td>
@@ -431,7 +415,7 @@
             const fieldInput = row.cells[0].querySelector('input');
             const fieldName = (fieldInput.name === "fieldName") ? fieldInput.value.trim() : fieldInput.value.trim();
             const label = row.querySelector('[name="label"]').value.trim();
-            const section = row.querySelector('[name="section"]').value;
+            const section = row.querySelector('[name="section"]').value.trim();
             const type = row.querySelector('[name="type"]').value;
             const maxChars = row.querySelector('[name="maxChars"]').value;
             const order = row.querySelector('[name="order"]').value;
